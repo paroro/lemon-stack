@@ -1,6 +1,6 @@
 # lemon-stack
 # Description
-This project was created to share scripts I have used to set up a Digital Ocean droplet for a .NET Core application. 
+This project was created to share scripts to set up a Digital Ocean droplet for a .NET Core application. 
 
 LEMoN is an acronym I chose for the following collection of software : 
 * L = Linux operating system, Ubuntu in this case.
@@ -8,7 +8,7 @@ LEMoN is an acronym I chose for the following collection of software :
 * M = MySQL for the database.
 * oN = .NET Core for the application.
 
-I called it LEMoN because it is easier to pronounce than LEMD (dotnet) or LEMC (C#) and with the lack of resources out there, it sometimes felt like a lemon.
+I called it LEMoN because it is easier to pronounce than LEMD (dotnet) or LEMC (C#) and with the lack of clear resources out there, the stack sometimes felt like a lemon.
 
 ## Steps to setup the server
 ### Install the LEMoN stack
@@ -16,6 +16,6 @@ install-lemon-stack.sh: creates the Ubuntu users, installs dotnet Core, nginx an
 ### Prepare app deployment
 prepare-app-deployment.sh: creates a user called "deployer" for deployment purposes and an application directory.
 ### Install the application
-Copy your .NET Core application to the application directory created in the previous script or deploy it from your CI/CD pipeline.
+Copy your .NET Core application to the application directory created in the previous script or deploy it from your CI/CD pipeline. Use .gitlab-ci.yml to help setup your Gitlab CI pipeline.
 ### Configure nginx
 configure-nginx.sh: configures nginx as a proxy server.
