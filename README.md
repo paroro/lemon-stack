@@ -13,7 +13,7 @@ I called it LEMoN because it is easier to pronounce than LEMD (dotnet) or LEMC (
 ## Steps to setup the server
 ### Install the LEMoN stack
 install-lemon-stack.sh: creates the Ubuntu users, installs dotnet Core, nginx and MySQL. It is based on the Digital Ocean [initial server setup script](https://www.digitalocean.com/community/tutorials/automating-initial-server-setup-with-ubuntu-18-04). When creating a droplet from the Control Panel, select the User data checkbox then copy and paste the script into the field provided before launching the installation.
-### Prepare app deployment
+### Prepare the application deployment
 prepare-app-deployment.sh: creates a user called "deployer" for deployment purposes and an application directory.
 ### Install the application
 Copy your .NET Core application to the application directory created in the previous script or deploy it from your CI/CD pipeline. Use .gitlab-ci.yml to help setup your Gitlab CI pipeline.
