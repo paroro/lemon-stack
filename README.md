@@ -11,10 +11,10 @@ LEMoN is an acronym I chose for the following collection of software :
 I called it LEMoN because it is easier to pronounce than LEMD (dotnet) or LEMC (C#) and with the lack of resources out there, it sometimes felt like a lemon.
 
 ## Install the LEMoN stack
-The main installation script is based on the Digital Ocean [initial server setup script](https://www.digitalocean.com/community/tutorials/automating-initial-server-setup-with-ubuntu-18-04). When creating a droplet from the Control Panel, select the User data checkbox then copy and paste the script into the field provided before launching the installation.
+The main script creates the Ubuntu users, installs dotnet Core, nginx and MySQL. It is based on the Digital Ocean [initial server setup script](https://www.digitalocean.com/community/tutorials/automating-initial-server-setup-with-ubuntu-18-04). When creating a droplet from the Control Panel, select the User data checkbox then copy and paste the script into the field provided before launching the installation.
 
-## Create a deployment user and the application directory
-
+## Create a deployer user and the application directory
+Create a user for deployment purposes as well as an application directory.
 
 ## Install the .NET Core application
 Copy your application to the application directory created in the previous script or deploy it from your CI/CD pipeline.
