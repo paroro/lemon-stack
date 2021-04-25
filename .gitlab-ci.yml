@@ -1,0 +1,124 @@
+# Replace "myapplication" with your applications name, "mydatabase" with your databases name, and "mypassword" with your password.
+
+# Select the dotnet image from https://hub.docker.com/_/microsoft-dotnet-core-sdk/
+image: mcr.microsoft.com/dotnet/core/sdk:3.1
+
+# Configure the mysql environment variables. 
+# Server host must be set to "mysql" in the test connection string to link to the image.
+variables:
+  MYSQL_DATABASE: "mydatabase"
+  MYSQL_ROOT_PASSWORD: "mypassword"
+  
+# Declare the stages that are going to be used
+stages:
+  - build
+  - test
+  - staging
+  - production
+
+# Any name for the jobs may be used but the stage needs to be declared.
+# The job name is shown in the Gitlab UI.
+Build Application: 
+  stage: build
+  script: 
+    - dotnet build
+
+Run Tests:
+  stage: test
+  # The services section allows the use of a separate MySQL image for database tests
+  # The image is from https://hub.docker.com/_/mysql/
+  services:
+    - mysql:8.0
+  script:
+    - dotnet test
+
+Deploy Staging:
+  stage: staging
+  only:
+  # Only publish to the staging server when changes are pushed to the develop branch.
+  - develop
+  artifacts:
+    paths:
+    - publish
+  before_script:
+  # Check that the ssh-agent is available if not install it.
+  - 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y )'
+  # Create the ssh directory.
+  - mkdir -p ~/.ssh
+  # Ensure bash is used.
+  - eval $(ssh-agent -s)
+  # Disable host checking for first connections. Note that all jobs will be first connections.
+  - '[[ -f /.dockerenv ]] && echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config'
+  script:
+  # Root directory is /builds/{accountname}/.
+  - cd myapplication 
+  # install npm
+  - apt-get -y update && apt-get install npm -y && apt-get clean
+  # install every npm modules
+  - npm install
+  # launch and run every npm module like tailwind
+  - npm run production
+  - cd ..
+  # Build the release and publish it to /builds/{accountname}/publish.
+  - dotnet publish --configuration Release --output publish myapplication/myapplication.csproj
+  # Add the private key to the docker container.
+  - ssh-add <(echo "$SSH_PRIVATE_KEY")
+  # Connect to the server and create a _tmp folder in the application directory.
+  - ssh -p22 deployer@$STAGING_SERVER "mkdir /var/www/myapplication/_tmp"
+  # Connect via scp and upload the publish folder to the previously created _tmp folder.
+  - scp -P22 -r publish/* deployer@$STAGING_SERVER:/var/www/myapplication/_tmp
+  # Connect via ssh and move the actual application files to an _old folder, then move the _tmp files to the application folder.
+  - ssh -p22 deployer@$STAGING_SERVER "mv /var/www/myapplication/app /var/www/myapplication/_old && mv /var/www/myapplication/_tmp /var/www/myapplication/app"
+  # Connect via ssh and move the _old folder to archive with current date and time.
+  - dateVariable=$(date +'%Y%m%d-%H:%M')
+  - ssh -p22 deployer@$STAGING_SERVER "mv /var/www/myapplication/_old /var/archive/myapplication/${dateVariable}"
+  # keep only 10 most recent archives and delete previous ones
+  - ssh -p22 deployer@$STAGING_SERVER "ls -1trd /var/archive/myapplication/* | head -n -10 | xargs -d '\n' rm -rf --"
+  # Once everything is done, restart the website
+  - ssh -p22 -t deployer@$STAGING_SERVER "sudo /bin/systemctl restart myapplication.service"
+
+Deploy Production:
+  stage: production
+  when: manual
+  only:
+  # Only publish to the production server when changes are pushed to the master branch.
+  - master
+  artifacts:
+    paths:
+    - publish/
+  before_script:
+  # Check that the ssh-agent is available if not install it.
+  - 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y )'
+  # Create the ssh directory.
+  - mkdir -p ~/.ssh
+  # Ensure bash is used.
+  - eval $(ssh-agent -s)
+  # Disable host checking for first connections. Note that all jobs will be first connections.
+  - '[[ -f /.dockerenv ]] && echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config'
+  script:
+  # Root directory is /builds/{accountname}/.
+  - cd myapplication 
+  # install npm
+  - apt-get -y update && apt-get install npm -y && apt-get clean
+  # install every npm modules
+  - npm install
+  # launch and run every npm module like tailwind
+  - npm run production
+  - cd ..
+  # Build the release and publish it to /builds/{accountname}/publish.
+  - dotnet publish --configuration Release --output /publish myapplication/myapplication.csproj
+  # Add the private key to the docker container.
+  - ssh-add <(echo "$SSH_PRIVATE_KEY")
+  # Connect to the server and create a _tmp folder in the application directory.
+  - ssh -p22 deployer@$PRODUCTION_SERVER "mkdir /var/www/myapplication/_tmp"
+  # Connect via scp and upload the publish folder to the previously created _tmp folder.
+  - scp -P22 -r /publish/* deployer@$PRODUCTION_SERVER:/var/www/myapplication/_tmp
+  # Connect via ssh and move the actual application files to an _old folder, then move the _tmp files to the application folder.
+  - ssh -p22 deployer@$PRODUCTION_SERVER "mv /var/www/myapplication/app /var/www/myapplication/_old && mv /var/www/myapplication/_tmp /var/www/myapplication/app"
+  # Connect via ssh and remove the _old folder -rf recursive, force.
+  - dateVariable=$(date +'%Y%m%d-%H:%M')
+  - ssh -p22 deployer@$PRODUCTION_SERVER "mv /var/www/myapplication/_old /var/archive/myapplication/${dateVariable}"
+  # keep only 10 most recent archives and delete previous ones
+  - ssh -p22 deployer@$PRODUCTION_SERVER "ls -1trd /var/archive/myapplication/* | head -n -10 | xargs -d '\n' rm -rf --"
+  # Once everything is done, restart the website
+  - ssh -p22 -t deployer@$PRODUCTION_SERVER "sudo /bin/systemctl restart myapplication.service"
